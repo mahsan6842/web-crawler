@@ -26,10 +26,9 @@ export class AppComponent {
 
     this.fetchContentByTags(['h1', 'h2', 'h3']).subscribe({
       next: ({ headers, descriptions }) => {
-        // Combine headers and descriptions into the `k` array
         this.k = headers.map((header, index) => ({
           header,
-          description: descriptions[index] || '', // Handle cases where descriptions are fewer than headers
+          description: descriptions[index] || '',
         }));
       },
       error: (error) => {
