@@ -26,13 +26,10 @@ export class AppComponent {
 
     this.fetchContentByTags(['h1', 'h2', 'h3']).subscribe({
       next: ({ headers, descriptions }) => {
-        this.datastore = headers.map((header, index) => ({
-          header,
-          description: descriptions[index] ?? '', // Use nullish coalescing operator
-        }));
+        this.datastore = this.safeMapHeadersAndDescriptions(headers, descriptions);
       },
       error: (err) => {
-        this.errorMessage = `Error: ${err.message ?? 'Unknown error'}`; // Ensure safe access to `err.message`
+        this.errorMessage = `Error: ${err.message ?? 'Unknown error'}`;
         this.loading = false;
       },
       complete: () => {
@@ -40,6 +37,25 @@ export class AppComponent {
       },
     });
   }
+
+  private safeMapHeadersAndDescriptions(
+    headers: string[],
+    descriptions: string[]
+  ): { header: string; description: string }[] {
+    // Ensure headers and descriptions are arrays and safely mapped
+    if (!Array.isArray(headers) || !Array.isArray(descriptions)) {
+      throw new Error('Invalid data format: headers and descriptions must be arrays.');
+    }
+
+    return headers.map((header, index) => {
+      const description = descriptions[index] ?? ''; // Nullish coalescing for safety
+      return {
+        header: header.trim(), // Ensure header is a string and trim unnecessary spaces
+        description: description.trim(), // Ensure description is a string and trim
+      };
+    });
+  }
+
 
   fetchContentByTags(tags: string[]): Observable<{ headers: string[]; descriptions: string[] }> {
     return this.http.get(this.apiUrl, { responseType: 'text' }).pipe(
