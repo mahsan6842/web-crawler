@@ -12,7 +12,7 @@ import { map, catchError } from 'rxjs/operators';
   styleUrls: ['./app.component.css'],
 })
 export class AppComponent {
-  k: { header: string; description: string }[] = [];
+  datastore: { header: string; description: string }[] = [];
   loading = false;
   errorMessage: string | null = null;
 
@@ -26,13 +26,13 @@ export class AppComponent {
 
     this.fetchContentByTags(['h1', 'h2', 'h3']).subscribe({
       next: ({ headers, descriptions }) => {
-        this.k = headers.map((header, index) => ({
+        this.datastore = headers.map((header, index) => ({
           header,
-          description: descriptions[index] || '',
+          description: descriptions[index] ?? '', // Use nullish coalescing operator
         }));
       },
-      error: (error) => {
-        this.errorMessage = error.message;
+      error: (err) => {
+        this.errorMessage = `Error: ${err.message ?? 'Unknown error'}`; // Ensure safe access to `err.message`
         this.loading = false;
       },
       complete: () => {
@@ -48,16 +48,16 @@ export class AppComponent {
         const doc = parser.parseFromString(response, 'text/html');
 
         const headers = tags.flatMap((tag) =>
-          Array.from(doc.querySelectorAll(tag)).map((el) => el.textContent?.trim() || '')
+          Array.from(doc.querySelectorAll(tag)).map((el) => el.textContent?.trim() ?? '') // Use nullish coalescing operator
         );
 
         const descriptions = Array.from(doc.querySelectorAll('p'))
-          .map((el) => el.textContent?.trim() || '')
+          .map((el) => el.textContent?.trim() ?? '') // Use nullish coalescing operator
           .filter((text) => text);
 
         return { headers, descriptions };
       }),
-      catchError((error) => throwError(() => new Error('Failed to fetch content')))
+      catchError(() => throwError(() => new Error('Failed to fetch content'))) // Avoid direct rethrow
     );
   }
 }
