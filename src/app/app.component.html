@@ -2,9 +2,9 @@
   <h1>Web Crawler</h1>
   <button (click)="fetchContent()">Fetch Content</button>
   <div *ngIf="loading">Loading...</div>
-  <div *ngIf="k.length > 0">
+  <div *ngIf="datastore.length > 0">
     <ul>
-      <li *ngFor="let header of k"> <h5>Header</h5> <p>{{ header.header }}</p> <h5>Descriptions</h5><p>{{ header.description }}</p></li>
+      <li *ngFor="let header of datastore"> <h5>Header</h5> <p>{{ header.header }}</p> <h5>Descriptions</h5><p>{{ header.description }}</p></li>
     </ul>
       <div>
   <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
