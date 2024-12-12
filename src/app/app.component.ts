@@ -1,50 +1,64 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CrawlerService } from './service';
+import { HttpClient } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="container">
-      <h1>Web Crawler</h1>
-      <button (click)="fetchContent()">Fetch Content</button>
-      <div *ngIf="loading">Loading...</div>
-      <div *ngIf="headers.length > 0 || descriptions.length > 0">
-        <h2>Headers</h2>
-        <ul>
-          <li *ngFor="let header of headers">{{ header }}</li>
-        </ul>
-        <h2>Descriptions</h2>
-        <ul>
-          <li *ngFor="let description of descriptions">{{ description }}</li>
-        </ul>
-      </div>
-      <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
-    </div>
-  `,
+  templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
 })
 export class AppComponent {
-  headers: string[] = [];
-  descriptions: string[] = [];
+  k: { header: string; description: string }[] = [];
   loading = false;
   errorMessage: string | null = null;
 
-  private crawlerService = inject(CrawlerService);
+  private readonly apiUrl = '/api'; // Proxy endpoint
+
+  constructor(private http: HttpClient) {}
 
   fetchContent(): void {
     this.loading = true;
     this.errorMessage = null;
 
-    this.crawlerService.fetchContentByTags(['h1', 'h2', 'h3']).subscribe({
+    this.fetchContentByTags(['h1', 'h2', 'h3']).subscribe({
       next: ({ headers, descriptions }) => {
-        this.headers = headers;
-        this.descriptions = descriptions;
+        // Combine headers and descriptions into the `k` array
+        this.k = headers.map((header, index) => ({
+          header,
+          description: descriptions[index] || '', // Handle cases where descriptions are fewer than headers
+        }));
       },
-      error: (error) => (this.errorMessage = error.message),
-      complete: () => (this.loading = false),
+      error: (error) => {
+        this.errorMessage = error.message;
+        this.loading = false;
+      },
+      complete: () => {
+        this.loading = false;
+      },
     });
+  }
+
+  fetchContentByTags(tags: string[]): Observable<{ headers: string[]; descriptions: string[] }> {
+    return this.http.get(this.apiUrl, { responseType: 'text' }).pipe(
+      map((response: string) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(response, 'text/html');
+
+        const headers = tags.flatMap((tag) =>
+          Array.from(doc.querySelectorAll(tag)).map((el) => el.textContent?.trim() || '')
+        );
+
+        const descriptions = Array.from(doc.querySelectorAll('p'))
+          .map((el) => el.textContent?.trim() || '')
+          .filter((text) => text);
+
+        return { headers, descriptions };
+      }),
+      catchError((error) => throwError(() => new Error('Failed to fetch content')))
+    );
   }
 }
